@@ -1,7 +1,8 @@
 from yt_dlp import YoutubeDL
 from flask import Flask, render_template, request, jsonify
-
+from pathlib import Path
 app = Flask(__name__)
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -11,15 +12,23 @@ def index():
         if videos:
             return render_template('playlist.html', videos=videos)
         else:
-            return render_template('index.html', error="Unable to fetch playlist information. Please try again.")
+            return render_template(
+                'index.html',
+                error="Unable to fetch playlist information. Please try again."
+            )
     return render_template('index.html')
+
 
 @app.route('/download', methods=['POST'])
 def download():
     selected_videos = request.json['videos']
     quality = request.json['quality']
     download_videos(selected_videos, quality)
-    return jsonify({'status': 'success'})
+    return jsonify({
+        'status': 'success',
+        'message': 'Videos are being downloaded to the "downloads" folder.'
+    })
+
 
 def get_playlist_info(url):
     ydl_opts = {
@@ -38,7 +47,10 @@ def get_playlist_info(url):
                         videos.append({
                             'id': video.get('id', 'Unknown'),
                             'title': video.get('title', 'Unknown Title'),
-                            'url': video.get('url', video.get('webpage_url', 'Unknown URL'))
+                            'url': video.get(
+                                'url',
+                                video.get('webpage_url', 'Unknown URL')
+                            )
                         })
                 return videos
             else:
@@ -48,7 +60,12 @@ def get_playlist_info(url):
             print(f"Error extracting playlist info: {str(e)}")
             return []
 
+
 def download_videos(videos, quality):
+    # Create a 'downloads' folder if it doesn't exist
+    downloads_path = Path('downloads')
+    downloads_path.mkdir(exist_ok=True)
+
     format_string = {
         '720p': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
         '1080p': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
@@ -58,7 +75,8 @@ def download_videos(videos, quality):
 
     ydl_opts = {
         'format': format_string,
-        'outtmpl': '%(title)s.%(ext)s',
+        # Save to 'downloads' folder
+        'outtmpl': str(downloads_path / '%(title)s.%(ext)s'),
         'ignoreerrors': True,
         'retries': 3,
     }
@@ -68,6 +86,7 @@ def download_videos(videos, quality):
                 ydl.download([video['url']])
             except Exception as e:
                 print(f"Error downloading {video['title']}: {str(e)}")
+
 
 if __name__ == '__main__':
     app.run(debug=True)
