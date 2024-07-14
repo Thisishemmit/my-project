@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Download Videos</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        select, button {
+            padding: 10px;
+            margin-right: 10px;
+        }
+        #download-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #video-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        #video-list li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        #log {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select Videos to Download</h1>
+    <div id="controls">
+        <select id="quality">
+            <option value="720p">720p</option>
+            <option value="1080p">1080p</option>
+            <option value="2k">2K</option>
+            <option value="4k">4K</option>
+        </select>
+        <input type="checkbox" id="select-all"> Select All
+        <button id="download-btn">Download Selected</button>
+    </div>
+    <ul id="video-list">
+    {% for video in videos %}
+        <li>
+            <input type="checkbox" class="video-checkbox" data-id="{{ video.id }}" data-url="{{ video.url }}">
+            {{ video.title }}
+        </li>
+    {% endfor %}
+    </ul>
+    <div id="log"></div>
+
+    <script>
+    $(document).ready(function() {
+        $('#select-all').change(function() {
+            $('.video-checkbox').prop('checked', this.checked);
+        });
+
+        $('#download-btn').click(function() {
+            var selectedVideos = [];
+            $('.video-checkbox:checked').each(function() {
+                selectedVideos.push({
+                    id: $(this).data('id'),
+                    url: $(this).data('url')
+                });
+            });
+            var quality = $('#quality').val();
+
+            $.ajax({
+                url: '/download',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({videos: selectedVideos, quality: quality}),
+                success: function(response) {
+                    $('#log').append('<p>Download started</p>');
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>
